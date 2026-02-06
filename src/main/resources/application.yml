@@ -1,0 +1,30 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: f1-gg-backend
+
+  jackson:
+    serialization:
+      INDENT_OUTPUT: true
+    deserialization:
+      # 소문자 대신 대문자로 적으면 빨간줄이 사라집니다!
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.f1gg.backend: DEBUG
+
+# JWT 설정
+jwt:
+  secret: f1gg-super-secret-key-must-be-at-least-256-bits-long-for-hmac-sha256-algorithm
+  access-token-validity: 3600000   # 1시간 (밀리초)
+  refresh-token-validity: 604800000 # 7일 (밀리초)
