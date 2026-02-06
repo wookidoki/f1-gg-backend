@@ -43,14 +43,18 @@ public class DriverService {
         "Kick Sauber", "#52E252"
     );
 
-    public List<DriverResponse> getStandings() {
-        JsonNode root = jolpicaClient.getCurrentDriverStandings();
+    public List<DriverResponse> getStandings(String season) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+        JsonNode root = jolpicaClient.getDriverStandings(targetSeason);
         List<DriverResponse> result = new ArrayList<>();
-        
+
         // 데이터 안전 장치
         if (root == null || !root.has("MRData")) return result;
 
-        JsonNode driverList = root.path("MRData").path("StandingsTable").path("StandingsLists").get(0).path("DriverStandings");
+        JsonNode standingsLists = root.path("MRData").path("StandingsTable").path("StandingsLists");
+        if (!standingsLists.isArray() || standingsLists.isEmpty()) return result;
+
+        JsonNode driverList = standingsLists.get(0).path("DriverStandings");
 
         if (driverList.isArray()) {
             for (JsonNode node : driverList) {
@@ -96,9 +100,11 @@ public class DriverService {
         return result;
     }
 
-    public ResponseEntity<ResponseData<?>> getDriverDetail(String code) {
-        // 1. 현재 시즌 드라이버 목록에서 해당 code의 드라이버 찾기
-        List<DriverResponse> standings = getStandings();
+    public ResponseEntity<ResponseData<?>> getDriverDetail(String code, String season) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+
+        // 1. 해당 시즌 드라이버 목록에서 해당 code의 드라이버 찾기
+        List<DriverResponse> standings = getStandings(targetSeason);
         Optional<DriverResponse> driverOpt = standings.stream()
                 .filter(d -> d.getCode().equalsIgnoreCase(code))
                 .findFirst();
@@ -112,7 +118,7 @@ public class DriverService {
         String driverId = driver.getDriverId();
 
         // 2. 시즌 경기 결과 조회
-        JsonNode resultsRoot = jolpicaClient.getDriverSeasonResults(driverId);
+        JsonNode resultsRoot = jolpicaClient.getDriverSeasonResults(targetSeason, driverId);
         List<DriverDetailResponse.RaceResult> seasonResults = parseSeasonResults(resultsRoot);
 
         // 3. 커리어 통계 조회

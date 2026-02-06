@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.f1gg.backend.common.ResponseData;
@@ -20,14 +21,17 @@ public class ConstructorController {
 
     // 팀 목록 조회
     @GetMapping
-    public ResponseEntity<ResponseData<List<ConstructorResponse>>> getConstructors() {
-        List<ConstructorResponse> constructors = constructorService.getStandings();
+    public ResponseEntity<ResponseData<List<ConstructorResponse>>> getConstructors(
+            @RequestParam(required = false) String season) {
+        List<ConstructorResponse> constructors = constructorService.getStandings(season);
         return ResponseEntity.ok(ResponseData.success(constructors, "컨스트럭터 목록 조회 성공"));
     }
 
     // 팀 상세 조회
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<?>> getConstructorDetail(@PathVariable String id) {
-        return constructorService.getConstructorDetail(id);
+    public ResponseEntity<ResponseData<?>> getConstructorDetail(
+            @PathVariable String id,
+            @RequestParam(required = false) String season) {
+        return constructorService.getConstructorDetail(id, season);
     }
 }

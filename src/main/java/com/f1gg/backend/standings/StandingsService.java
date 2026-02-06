@@ -47,8 +47,9 @@ public class StandingsService {
     );
 
     // 드라이버 순위 조회
-    public StandingsResponse.DriverStandings getDriverStandings() {
-        List<DriverResponse> drivers = driverService.getStandings();
+    public StandingsResponse.DriverStandings getDriverStandings(String season) {
+        List<DriverResponse> drivers = driverService.getStandings(season);
+        String targetSeason = (season == null || season.isBlank()) ? "2025" : season;
 
         List<StandingsResponse.DriverEntry> standings = drivers.stream()
                 .map(d -> StandingsResponse.DriverEntry.builder()
@@ -73,15 +74,16 @@ public class StandingsService {
                 .collect(Collectors.toList());
 
         return StandingsResponse.DriverStandings.builder()
-                .season("2024")
-                .round(drivers.isEmpty() ? 0 : 24) // 현재 라운드
+                .season(targetSeason)
+                .round(drivers.isEmpty() ? 0 : 24)
                 .standings(standings)
                 .build();
     }
 
     // 컨스트럭터 순위 조회
-    public StandingsResponse.ConstructorStandings getConstructorStandings() {
-        List<ConstructorResponse> constructors = constructorService.getStandings();
+    public StandingsResponse.ConstructorStandings getConstructorStandings(String season) {
+        List<ConstructorResponse> constructors = constructorService.getStandings(season);
+        String targetSeason = (season == null || season.isBlank()) ? "2025" : season;
 
         List<StandingsResponse.ConstructorEntry> standings = constructors.stream()
                 .map(c -> StandingsResponse.ConstructorEntry.builder()
@@ -98,7 +100,7 @@ public class StandingsService {
                 .collect(Collectors.toList());
 
         return StandingsResponse.ConstructorStandings.builder()
-                .season("2024")
+                .season(targetSeason)
                 .round(constructors.isEmpty() ? 0 : 24)
                 .standings(standings)
                 .build();

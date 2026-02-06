@@ -79,17 +79,20 @@ public class ConstructorService {
     );
 
     // 팀 목록 조회
-    public List<ConstructorResponse> getStandings() {
-        JsonNode root = jolpicaClient.getCurrentConstructorStandings();
+    public List<ConstructorResponse> getStandings(String season) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+        JsonNode root = jolpicaClient.getConstructorStandings(targetSeason);
         List<ConstructorResponse> result = new ArrayList<>();
 
         if (root == null || !root.has("MRData")) return result;
 
-        JsonNode standingsList = root.path("MRData").path("StandingsTable")
-                .path("StandingsLists").get(0).path("ConstructorStandings");
+        JsonNode standingsLists = root.path("MRData").path("StandingsTable").path("StandingsLists");
+        if (!standingsLists.isArray() || standingsLists.isEmpty()) return result;
+
+        JsonNode standingsList = standingsLists.get(0).path("ConstructorStandings");
 
         // 드라이버 목록 가져오기 (팀별 드라이버 매핑용)
-        List<DriverResponse> drivers = driverService.getStandings();
+        List<DriverResponse> drivers = driverService.getStandings(targetSeason);
         Map<String, List<DriverResponse>> driversByTeam = drivers.stream()
                 .collect(Collectors.groupingBy(DriverResponse::getTeam));
 
@@ -126,9 +129,11 @@ public class ConstructorService {
     }
 
     // 팀 상세 조회
-    public ResponseEntity<ResponseData<?>> getConstructorDetail(String id) {
-        // 1. 현재 순위에서 해당 팀 찾기
-        List<ConstructorResponse> standings = getStandings();
+    public ResponseEntity<ResponseData<?>> getConstructorDetail(String id, String season) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+
+        // 1. 해당 시즌 순위에서 해당 팀 찾기
+        List<ConstructorResponse> standings = getStandings(targetSeason);
         Optional<ConstructorResponse> constructorOpt = standings.stream()
                 .filter(c -> c.getConstructorId().equalsIgnoreCase(id))
                 .findFirst();
@@ -141,7 +146,7 @@ public class ConstructorService {
         ConstructorResponse constructor = constructorOpt.get();
 
         // 2. 시즌 결과 조회
-        JsonNode resultsRoot = jolpicaClient.getConstructorSeasonResults(id);
+        JsonNode resultsRoot = jolpicaClient.getConstructorSeasonResults(targetSeason, id);
         List<ConstructorDetailResponse.RaceResult> seasonResults = parseSeasonResults(resultsRoot);
 
         // 3. 커리어 통계
@@ -149,7 +154,7 @@ public class ConstructorService {
         ConstructorDetailResponse.CareerStats careerStats = parseCareerStats(careerRoot);
 
         // 4. 드라이버 상세 정보
-        List<DriverResponse> allDrivers = driverService.getStandings();
+        List<DriverResponse> allDrivers = driverService.getStandings(targetSeason);
         List<ConstructorDetailResponse.DriverInfo> driverInfos = allDrivers.stream()
                 .filter(d -> d.getTeam().equals(constructor.getName()))
                 .map(d -> ConstructorDetailResponse.DriverInfo.builder()

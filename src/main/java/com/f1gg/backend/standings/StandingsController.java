@@ -3,6 +3,7 @@ package com.f1gg.backend.standings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.f1gg.backend.common.ResponseData;
@@ -17,15 +18,17 @@ public class StandingsController {
 
     // 드라이버 순위
     @GetMapping("/drivers")
-    public ResponseEntity<ResponseData<StandingsResponse.DriverStandings>> getDriverStandings() {
-        StandingsResponse.DriverStandings standings = standingsService.getDriverStandings();
+    public ResponseEntity<ResponseData<StandingsResponse.DriverStandings>> getDriverStandings(
+            @RequestParam(required = false) String season) {
+        StandingsResponse.DriverStandings standings = standingsService.getDriverStandings(season);
         return ResponseEntity.ok(ResponseData.success(standings, "드라이버 순위 조회 성공"));
     }
 
     // 컨스트럭터 순위
     @GetMapping("/constructors")
-    public ResponseEntity<ResponseData<StandingsResponse.ConstructorStandings>> getConstructorStandings() {
-        StandingsResponse.ConstructorStandings standings = standingsService.getConstructorStandings();
+    public ResponseEntity<ResponseData<StandingsResponse.ConstructorStandings>> getConstructorStandings(
+            @RequestParam(required = false) String season) {
+        StandingsResponse.ConstructorStandings standings = standingsService.getConstructorStandings(season);
         return ResponseEntity.ok(ResponseData.success(standings, "컨스트럭터 순위 조회 성공"));
     }
 }

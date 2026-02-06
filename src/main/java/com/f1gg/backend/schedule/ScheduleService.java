@@ -129,17 +129,18 @@ public class ScheduleService {
     ));
 
     // 시즌 일정 조회
-    public ScheduleResponse getSchedule() {
-        JsonNode root = jolpicaClient.getCurrentSeasonSchedule();
+    public ScheduleResponse getSchedule(String season) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+        JsonNode root = jolpicaClient.getSeasonSchedule(targetSeason);
         List<ScheduleResponse.Race> races = new ArrayList<>();
 
         if (root == null || !root.has("MRData")) {
             return ScheduleResponse.builder()
-                    .season("2024").totalRaces(0).races(races).build();
+                    .season(targetSeason).totalRaces(0).races(races).build();
         }
 
         JsonNode raceTable = root.path("MRData").path("RaceTable");
-        String season = raceTable.path("season").asText();
+        String seasonFromApi = raceTable.path("season").asText();
         JsonNode raceList = raceTable.path("Races");
 
         LocalDate today = LocalDate.now();
@@ -158,7 +159,7 @@ public class ScheduleService {
 
                 // 완료된 경기는 우승자 조회
                 if (status.equals("FINISHED")) {
-                    winner = getWinner(round);
+                    winner = getWinner(targetSeason, round);
                 }
 
                 races.add(ScheduleResponse.Race.builder()
@@ -178,15 +179,15 @@ public class ScheduleService {
         }
 
         return ScheduleResponse.builder()
-                .season(season)
+                .season(seasonFromApi)
                 .totalRaces(races.size())
                 .races(races)
                 .build();
     }
 
     // 다음 경기 조회
-    public ResponseEntity<ResponseData<?>> getNextRace() {
-        ScheduleResponse schedule = getSchedule();
+    public ResponseEntity<ResponseData<?>> getNextRace(String season) {
+        ScheduleResponse schedule = getSchedule(season);
         Optional<ScheduleResponse.Race> nextRace = schedule.getRaces().stream()
                 .filter(r -> "UPCOMING".equals(r.getStatus()))
                 .findFirst();
@@ -217,8 +218,9 @@ public class ScheduleService {
     }
 
     // 경기 결과 조회
-    public ResponseEntity<ResponseData<?>> getRaceResult(int round) {
-        JsonNode root = jolpicaClient.getRaceResults(round);
+    public ResponseEntity<ResponseData<?>> getRaceResult(String season, int round) {
+        String targetSeason = (season == null || season.isBlank()) ? JolpicaClient.DEFAULT_SEASON : season;
+        JsonNode root = jolpicaClient.getRaceResults(targetSeason, round);
 
         if (root == null || !root.has("MRData")) {
             return ResponseEntity.status(404)
@@ -305,9 +307,9 @@ public class ScheduleService {
     }
 
     // 우승자 조회 헬퍼
-    private ScheduleResponse.Winner getWinner(int round) {
+    private ScheduleResponse.Winner getWinner(String season, int round) {
         try {
-            JsonNode root = jolpicaClient.getRaceResults(round);
+            JsonNode root = jolpicaClient.getRaceResults(season, round);
             if (root == null || !root.has("MRData")) return null;
 
             JsonNode races = root.path("MRData").path("RaceTable").path("Races");
@@ -336,5 +338,40 @@ public class ScheduleService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // 사용 가능한 시즌 목록 조회
+    public ResponseEntity<ResponseData<?>> getAvailableSeasons() {
+        JsonNode root = jolpicaClient.getAvailableSeasons();
+
+        if (root == null || !root.has("MRData")) {
+            return ResponseEntity.ok(ResponseData.success(
+                Map.of("seasons", List.of("2024", "2023", "2022", "2021", "2020")),
+                "시즌 목록 조회 성공"
+            ));
+        }
+
+        JsonNode seasonList = root.path("MRData").path("SeasonTable").path("Seasons");
+        List<String> seasons = new ArrayList<>();
+
+        if (seasonList.isArray()) {
+            for (JsonNode s : seasonList) {
+                seasons.add(s.path("season").asText());
+            }
+        }
+
+        // 최근 시즌이 앞에 오도록 역순 정렬
+        Collections.reverse(seasons);
+
+        // 최근 10개만
+        if (seasons.size() > 10) {
+            seasons = seasons.subList(0, 10);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("defaultSeason", JolpicaClient.DEFAULT_SEASON);
+        result.put("seasons", seasons);
+
+        return ResponseEntity.ok(ResponseData.success(result, "시즌 목록 조회 성공"));
     }
 }
