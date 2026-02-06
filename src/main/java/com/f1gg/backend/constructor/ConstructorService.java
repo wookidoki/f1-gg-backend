@@ -149,9 +149,12 @@ public class ConstructorService {
         JsonNode resultsRoot = jolpicaClient.getConstructorSeasonResults(targetSeason, id);
         List<ConstructorDetailResponse.RaceResult> seasonResults = parseSeasonResults(resultsRoot);
 
-        // 3. 커리어 통계
-        JsonNode careerRoot = jolpicaClient.getConstructorCareerStats(id);
-        ConstructorDetailResponse.CareerStats careerStats = parseCareerStats(careerRoot);
+        // 3. 커리어 통계 (Jolpica API 제한으로 현재 시즌 데이터만 사용)
+        ConstructorDetailResponse.CareerStats careerStats = ConstructorDetailResponse.CareerStats.builder()
+                .championships(0)
+                .wins(Integer.parseInt(constructor.getWins()))
+                .seasons(1)
+                .build();
 
         // 4. 드라이버 상세 정보
         List<DriverResponse> allDrivers = driverService.getStandings(targetSeason);
