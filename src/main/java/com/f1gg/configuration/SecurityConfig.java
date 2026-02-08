@@ -39,6 +39,12 @@ public class SecurityConfig {
 
             // 경로별 권한 설정
             .authorizeHttpRequests(auth -> auth
+                // Swagger UI
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-resources/**").permitAll()
+
                 // 공개 API (인증 불필요)
                 .requestMatchers("/api/v1/auth/**").permitAll()      // 인증 관련
                 .requestMatchers("/api/v1/drivers/**").permitAll()   // 드라이버 조회
